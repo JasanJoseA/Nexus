@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NEXUS // Orchestrator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#05060c;
+    --bg2:#080a14;
+    --panel:#0b0e1c;
+    --panel2:#10142590;
+    --line: rgba(0,255,242,.14);
+    --line-soft: rgba(0,255,242,.06);
+    --cyan:#00fff2;
+    --magenta:#ff2bd6;
+    --purple:#9b5cff;
+    --amber:#ffb020;
+    --green:#00ff9d;
+    --red:#ff3b6b;
+    --text:#d9e4ff;
+    --text-dim:#5f6a8c;
+    --text-dim2:#8891ab;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Rajdhani',sans-serif;
+    min-height:100vh;
+    position:relative;
+    overflow-x:hidden;
+  }
+  /* ambient grid + scanline */
+  body::before{
+    content:'';
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(var(--line-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 40%, transparent 90%);
+    pointer-events:none;
+    z-index:0;
+  }
+  body::after{
+    content:'';
+    position:fixed; inset:0;
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px);
+    pointer-events:none;
+    z-index:1;
+    opacity:.5;
+  }
+  .glow-cyan{color:var(--cyan); text-shadow:0 0 6px rgba(0,255,242,.6), 0 0 22px rgba(0,255,242,.25);}
+  .glow-magenta{color:var(--magenta); text-shadow:0 0 6px rgba(255,43,214,.6), 0 0 22px rgba(255,43,214,.25);}
+
+  #app{ position:relative; z-index:2; max-width:1400px; margin:0 auto; padding:22px 24px 60px; }
+
+  /* ---------- header ---------- */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding-bottom:16px; margin-bottom:22px;
+    border-bottom:1px solid var(--line);
+  }
+  .brand{ display:flex; align-items:center; gap:14px; }
+  .brand-mark{
+    width:38px; height:38px; border:1px solid var(--cyan); position:relative;
+    display:flex; align-items:center; justify-content:center;
+    transform: rotate(45deg);
+    box-shadow: 0 0 14px rgba(0,255,242,.35), inset 0 0 10px rgba(0,255,242,.15);
+  }
+  .brand-mark span{ transform: rotate(-45deg); color:var(--cyan); font-family:'Orbitron'; font-weight:700; font-size:14.7px; }
+  .brand h1{
+    font-family:'Orbitron', sans-serif; font-weight:700; font-size:21px; letter-spacing:3px;
+    margin:0; color:var(--text);
+  }
+  .brand h1 b{ color:var(--cyan); font-weight:900; }
+  .brand p{ margin:2px 0 0; font-size:12.6px; letter-spacing:2px; color:var(--text-dim2); text-transform:uppercase; }
+  .status-pill{
+    font-family:'JetBrains Mono', monospace; font-size:11.6px; letter-spacing:1px;
+    padding:7px 14px; border:1px solid var(--line); border-radius:2px;
+    color:var(--text-dim2); display:flex; align-items:center; gap:8px;
+    background:rgba(0,255,242,.03);
+  }
+  .status-dot{ width:7px; height:7px; border-radius:50%; background:var(--text-dim); }
+  .status-dot.live{ background:var(--green); box-shadow:0 0 8px var(--green); animation:pulse 1.4s infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+  /* ---------- setup form ---------- */
+  .panel{
+    background: linear-gradient(180deg, var(--panel), #0a0d18);
+    border:1px solid var(--line);
+    position:relative;
+  }
+  .panel::before{
+    content:''; position:absolute; top:-1px; left:-1px; width:14px; height:14px;
+    border-top:2px solid var(--cyan); border-left:2px solid var(--cyan);
+  }
+  .panel::after{
+    content:''; position:absolute; bottom:-1px; right:-1px; width:14px; height:14px;
+    border-bottom:2px solid var(--cyan); border-right:2px solid var(--cyan);
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace; font-size:11.6px; letter-spacing:3px;
+    color:var(--cyan); text-transform:uppercase; margin:0 0 6px;
+  }
+  #setup{ padding:28px; margin-bottom:28px; }
+  #setup h2{ font-family:'Orbitron'; font-size:23.1px; margin:0 0 4px; letter-spacing:1px; }
+  #setup .sub{ color:var(--text-dim2); font-size:14.7px; margin:0 0 22px; max-width:640px; line-height:1.5;}
+  .field{ margin-bottom:18px; }
+  .field label{ display:block; font-size:12.6px; letter-spacing:2px; color:var(--text-dim2); text-transform:uppercase; margin-bottom:8px; font-family:'JetBrains Mono', monospace;}
+  input[type=text], textarea, select{
+    width:100%; background:#070912; border:1px solid var(--line); color:var(--text);
+    font-family:'Rajdhani'; font-size:16.8px; padding:11px 13px; border-radius:2px;
+    outline:none; transition:border-color .15s, box-shadow .15s;
+  }
+  input[type=text]:focus, textarea:focus, select:focus{
+    border-color:var(--cyan); box-shadow:0 0 0 1px var(--cyan), 0 0 12px rgba(0,255,242,.2);
+  }
+  textarea{ resize:vertical; min-height:80px; font-size:15.8px; line-height:1.5;}
+  select{ appearance:none; background-image:linear-gradient(45deg,transparent 50%,var(--cyan) 50%),linear-gradient(135deg,var(--cyan) 50%,transparent 50%); background-position:calc(100% - 20px) center, calc(100% - 15px) center; background-size:5px 5px, 5px 5px; background-repeat:no-repeat; cursor:pointer;}
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .feature-grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px;
+  }
+  .feature-chip{
+    display:flex; align-items:center; gap:10px; padding:10px 12px;
+    border:1px solid var(--line); cursor:pointer; user-select:none;
+    background:rgba(255,255,255,.015); transition:.15s;
+    font-size:14.7px;
+  }
+  .feature-chip:hover{ border-color:var(--purple); background:rgba(155,92,255,.06); }
+  .feature-chip.checked{ border-color:var(--cyan); background:rgba(0,255,242,.06); box-shadow:inset 0 0 12px rgba(0,255,242,.08);}
+  .feature-chip .box{ width:14px; height:14px; border:1px solid var(--text-dim); flex-shrink:0; position:relative; }
+  .feature-chip.checked .box{ border-color:var(--cyan); background:var(--cyan); box-shadow:0 0 8px var(--cyan); }
+  .feature-chip input{ display:none; }
+
+  .deploy-btn{
+    font-family:'Orbitron'; font-weight:700; letter-spacing:2px; font-size:14.7px;
+    background:transparent; color:var(--cyan); border:1px solid var(--cyan);
+    padding:15px 34px; cursor:pointer; margin-top:8px; position:relative;
+    transition:.15s; text-transform:uppercase;
+  }
+  .deploy-btn:hover{ background:var(--cyan); color:#04060a; box-shadow:0 0 24px rgba(0,255,242,.55); }
+  .deploy-btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .deploy-btn:disabled:hover{ background:transparent; color:var(--cyan); box-shadow:none; }
+
+  /* ---------- network diagram ---------- */
+  #network{ padding:18px 10px 6px; margin-bottom:24px; }
+  #network svg{ width:100%; height:auto; display:block; }
+  .node-label{ font-family:'JetBrains Mono'; font-size:10.5px; fill:var(--text-dim2); letter-spacing:1px;}
+  .core-label{ font-family:'Orbitron'; font-size:11.6px; fill:var(--cyan); font-weight:700; }
+  .link{ stroke-width:1.2; stroke-dasharray:4 5; opacity:.35; transition:opacity .3s, stroke-width .3s; }
+  .link.active{ opacity:1; stroke-width:2; animation:dash 1s linear infinite; }
+  @keyframes dash{ to{ stroke-dashoffset:-18; } }
+  .node-ring{ transition: stroke .3s, filter .3s; }
+
+  /* ---------- dashboard ---------- */
+  #dashboard{ display:none; }
+  .grid3{ display:grid; grid-template-columns: 280px 1fr 340px; gap:20px; align-items:start; }
+  @media (max-width:1100px){ .grid3{ grid-template-columns:1fr; } }
+
+  .section-title{
+    font-family:'Orbitron'; font-size:13.7px; letter-spacing:2px; color:var(--text-dim2);
+    text-transform:uppercase; margin:0 0 14px; display:flex; align-items:center; gap:8px;
+  }
+  .section-title::before{ content:''; width:6px; height:6px; background:var(--cyan); box-shadow:0 0 6px var(--cyan); display:inline-block;}
+
+  /* agent roster */
+  #roster{ padding:18px; display:flex; flex-direction:column; gap:10px; }
+  .agent-card{
+    border:1px solid var(--line); background:rgba(255,255,255,.015); padding:12px; position:relative;
+    transition:.2s;
+  }
+  .agent-card.active{ border-color: var(--ac,var(--cyan)); box-shadow:0 0 16px rgba(0,255,242,.15); }
+  .agent-top{ display:flex; align-items:center; gap:10px; }
+  .agent-icon{
+    width:30px; height:30px; border:1px solid var(--ac,var(--text-dim)); color:var(--ac,var(--text-dim));
+    display:flex; align-items:center; justify-content:center; font-size:14.7px; flex-shrink:0;
+    font-family:'Orbitron';
+  }
+  .agent-card.active .agent-icon{ box-shadow:0 0 10px var(--ac); background:rgba(255,255,255,.03); }
+  .agent-name{ font-family:'Orbitron'; font-size:13.1px; letter-spacing:.5px; color:var(--text); }
+  .agent-role{ font-size:11.6px; color:var(--text-dim2); font-family:'JetBrains Mono'; margin-top:1px; }
+  .agent-state{
+    margin-left:auto; font-family:'JetBrains Mono'; font-size:10.5px; letter-spacing:1px;
+    padding:3px 7px; border:1px solid var(--line); color:var(--text-dim2); text-transform:uppercase;
+  }
+  .agent-state.working{ color:var(--amber); border-color:var(--amber); }
+  .agent-state.done{ color:var(--green); border-color:var(--green); }
+  .agent-state.error{ color:var(--red); border-color:var(--red); }
+  .agent-bar{ height:2px; background:rgba(255,255,255,.06); margin-top:10px; overflow:hidden; }
+  .agent-bar i{ display:block; height:100%; width:0%; background:var(--ac,var(--cyan)); transition:width .4s linear; box-shadow:0 0 6px var(--ac,var(--cyan)); }
+  .agent-task{ font-size:11.6px; color:var(--text-dim2); margin-top:8px; font-family:'JetBrains Mono'; line-height:1.4; min-height:14px;}
+  .view-output{
+    margin-top:9px; font-family:'JetBrains Mono'; font-size:11px; letter-spacing:1px;
+    color:var(--cyan); background:none; border:1px solid var(--line); padding:5px 9px;
+    cursor:pointer; display:none; text-transform:uppercase;
+  }
+  .view-output:hover{ border-color:var(--cyan); }
+  .agent-card.done .view-output{ display:inline-block; }
+
+  /* kanban */
+  #pipeline{ padding:18px; }
+  .kanban{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  @media (max-width:820px){ .kanban{ grid-template-columns:1fr 1fr; } }
+  .kcol{ background:rgba(255,255,255,.012); border:1px solid var(--line-soft); min-height:120px; padding:10px; }
+  .kcol h4{
+    font-family:'JetBrains Mono'; font-size:11px; letter-spacing:2px; color:var(--text-dim2);
+    text-transform:uppercase; margin:0 0 10px; display:flex; justify-content:space-between;
+  }
+  .kcol h4 em{ color:var(--cyan); font-style:normal; }
+  .task-card{
+    background:var(--panel); border:1px solid var(--line); padding:9px 10px; margin-bottom:8px;
+    font-size:13.1px; line-height:1.35; border-left:2px solid var(--ac,var(--text-dim));
+    transition:transform .25s, opacity .25s;
+  }
+  .task-card .t-agent{ font-family:'JetBrains Mono'; font-size:10px; color:var(--ac,var(--text-dim2)); letter-spacing:1px; text-transform:uppercase; margin-top:4px; }
+
+  /* output modal cards inline */
+  .output-box{
+    display:none; margin-top:10px; border-top:1px dashed var(--line); padding-top:10px;
+    font-size:13.1px; line-height:1.55; color:var(--text-dim2); max-height:260px; overflow-y:auto;
+  }
+  .output-box.show{ display:block; }
+  .output-box h3, .output-box h2, .output-box h1{ font-family:'Orbitron'; font-size:12.1px; color:var(--cyan); letter-spacing:1px; margin:10px 0 4px; text-transform:uppercase;}
+  .output-box ul{ margin:4px 0; padding-left:18px; }
+  .output-box code{ background:rgba(0,255,242,.08); color:var(--cyan); padding:1px 4px; font-family:'JetBrains Mono'; font-size:11.6px;}
+  .output-box pre{ background:#04060b; border:1px solid var(--line); padding:10px; overflow-x:auto; font-family:'JetBrains Mono'; font-size:11.6px; color:#9be9ff; }
+  .output-box strong{ color:var(--text); }
+
+  /* terminal */
+  #terminal{ padding:0; overflow:hidden; }
+  #terminal .term-head{
+    display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--line);
+    font-family:'JetBrains Mono'; font-size:11.6px; color:var(--text-dim2);
+  }
+  .term-dot{ width:9px; height:9px; border-radius:50%; }
+  #term-body{
+    font-family:'JetBrains Mono'; font-size:12.1px; line-height:1.65; padding:14px;
+    height:420px; overflow-y:auto; background:#03040a;
+  }
+  #term-body div{ margin-bottom:3px; white-space:pre-wrap; word-break:break-word; }
+  .t-sys{ color:var(--text-dim2); }
+  .t-ok{ color:var(--green); }
+  .t-warn{ color:var(--amber); }
+  .t-err{ color:var(--red); }
+  .t-tag{ color:var(--cyan); }
+  #term-body::-webkit-scrollbar, .output-box::-webkit-scrollbar{ width:6px; }
+  #term-body::-webkit-scrollbar-thumb, .output-box::-webkit-scrollbar-thumb{ background:var(--line); }
+
+  /* summary */
+  #summary{ display:none; padding:26px; margin-top:22px; }
+  #summary h2{ font-family:'Orbitron'; font-size:21px; color:var(--green); text-shadow:0 0 12px rgba(0,255,157,.4); margin:0 0 6px;}
+  #summary p{ color:var(--text-dim2); margin:0 0 18px; font-size:14.7px; }
+  .stat-row{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom:20px; }
+  .stat{ border:1px solid var(--line); padding:12px 18px; min-width:120px; }
+  .stat b{ display:block; font-family:'Orbitron'; font-size:23.1px; color:var(--cyan); }
+  .stat span{ font-size:11.6px; color:var(--text-dim2); letter-spacing:1px; text-transform:uppercase; font-family:'JetBrains Mono'; }
+  .filetree{ font-family:'JetBrains Mono'; font-size:13.1px; color:var(--text-dim2); background:#04060b; border:1px solid var(--line); padding:16px; white-space:pre; overflow-x:auto; line-height:1.7;}
+  .filetree .f{ color:var(--cyan); }
+  .filetree .d{ color:var(--purple); }
+
+  .run-btn{
+    font-family:'Orbitron'; font-weight:700; letter-spacing:2px; font-size:14.7px;
+    background:transparent; color:var(--green); border:1px solid var(--green);
+    padding:14px 30px; cursor:pointer; text-transform:uppercase; transition:.15s;
+  }
+  .run-btn:hover{ background:var(--green); color:#04060a; box-shadow:0 0 22px rgba(0,255,157,.5); }
+  .run-btn:disabled{ opacity:.45; cursor:not-allowed; }
+  .run-btn:disabled:hover{ background:transparent; color:var(--green); box-shadow:none; }
+
+  .browser-frame{
+    display:none; margin-top:18px; border:1px solid var(--line); background:#03040a;
+  }
+  .browser-frame.show{ display:block; }
+  .browser-chrome{
+    display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--line);
+    background:#070a14;
+  }
+  .browser-url{
+    flex:1; margin-left:8px; background:#04060b; border:1px solid var(--line-soft); color:var(--text-dim2);
+    font-family:'JetBrains Mono'; font-size:11.5px; padding:5px 10px; letter-spacing:.5px;
+  }
+  .browser-live{ font-family:'JetBrains Mono'; font-size:10.5px; color:var(--green); letter-spacing:1px; }
+  .browser-body{ position:relative; height:520px; }
+  #preview-frame{ width:100%; height:100%; overflow:auto; background:#fff; display:none; }
+  .preview-loading{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:14px; color:var(--text-dim2); font-family:'JetBrains Mono'; font-size:12px; letter-spacing:1px;
+    background:#03040a;
+  }
+  .spinner{
+    width:34px; height:34px; border:2px solid var(--line); border-top-color:var(--green); border-radius:50%;
+    animation:spin 0.8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .files-btn{
+    font-family:'Orbitron'; font-weight:700; letter-spacing:2px; font-size:14.7px;
+    background:transparent; color:var(--purple); border:1px solid var(--purple);
+    padding:14px 30px; cursor:pointer; text-transform:uppercase; transition:.15s;
+    margin-left:12px;
+  }
+  .files-btn:hover{ background:var(--purple); color:#04060a; box-shadow:0 0 22px rgba(155,92,255,.5); }
+
+  .files-panel{
+    display:none; margin-top:18px; border:1px solid var(--line); background:#03040a;
+  }
+  .files-panel.show{ display:block; }
+  .files-tabs{
+    display:flex; flex-wrap:wrap; gap:0; border-bottom:1px solid var(--line); background:#070a14;
+  }
+  .file-tab{
+    font-family:'JetBrains Mono'; font-size:11px; letter-spacing:.5px; color:var(--text-dim2);
+    background:none; border:0; border-right:1px solid var(--line-soft); padding:10px 14px; cursor:pointer;
+  }
+  .file-tab:hover{ color:var(--text); }
+  .file-tab.active{ color:var(--purple); background:rgba(155,92,255,.08); box-shadow:inset 0 -2px 0 var(--purple); }
+  .files-toolbar{
+    display:flex; align-items:center; justify-content:space-between; padding:8px 14px;
+    border-bottom:1px solid var(--line-soft);
+  }
+  .files-toolbar span{ font-family:'JetBrains Mono'; font-size:11px; color:var(--text-dim2); }
+  .copy-file-btn{
+    font-family:'JetBrains Mono'; font-size:10.5px; letter-spacing:1px; color:var(--cyan);
+    background:none; border:1px solid var(--line); padding:5px 10px; cursor:pointer; text-transform:uppercase;
+  }
+  .copy-file-btn:hover{ border-color:var(--cyan); }
+  .files-content{
+    font-family:'JetBrains Mono'; font-size:11.5px; line-height:1.6; color:var(--text-dim2);
+    padding:16px; margin:0; max-height:420px; overflow:auto; white-space:pre-wrap; word-break:break-word;
+  }
+
+  .reset-btn{
+    font-family:'JetBrains Mono'; font-size:11.6px; letter-spacing:1px; color:var(--text-dim2);
+    background:none; border:1px solid var(--line); padding:9px 16px; cursor:pointer; margin-top:20px;
+    text-transform:uppercase;
+  }
+  .reset-btn:hover{ color:var(--cyan); border-color:var(--cyan); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark"><span>N</span></div>
+      <div>
+        <h1>NEX<b>US</b> // ORCHESTRATOR</h1>
+        <p>multi-agent website build controller</p>
+      </div>
+    </div>
+    <div class="status-pill"><span class="status-dot" id="status-dot"></span><span id="status-text">SYSTEM IDLE</span></div>
+  </header>
+
+  <!-- SETUP -->
+  <section class="panel" id="setup">
+    <p class="eyebrow">// New Build</p>
+    <h2>Describe the site you want built</h2>
+    <p class="sub">NEXUS breaks your brief into tasks and dispatches them to six specialist agents — architecture, design, frontend, backend, content, and QA each return real, tailored deliverables for your project.</p>
+
+    <div class="row2">
+      <div class="field">
+        <label>Project name</label>
+        <input type="text" id="proj-name" placeholder="e.g. Aurora Fitness Studio" value="Aurora Fitness Studio">
+      </div>
+      <div class="field">
+        <label>Site type</label>
+        <select id="proj-type">
+          <option>Marketing / Landing Page</option>
+          <option>SaaS Web App</option>
+          <option selected>E-commerce Store</option>
+          <option>Blog / Content Site</option>
+          <option>Portfolio</option>
+          <option>Internal Dashboard</option>
+          <option>Marketplace</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Brief — what does this site need to do?</label>
+      <textarea id="proj-brief">A boutique fitness studio site where visitors can browse class packages, buy memberships online, and book classes. Should feel energetic, modern, and trustworthy.</textarea>
+    </div>
+
+    <div class="field">
+      <label>Capabilities to include</label>
+      <div class="feature-grid" id="feature-grid"></div>
+    </div>
+
+    <button class="deploy-btn" id="deploy-btn">▶ Deploy Agents</button>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section id="dashboard">
+
+    <div id="network" class="panel">
+      <svg id="net-svg" viewBox="0 0 900 190" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+
+    <div class="grid3">
+      <div class="panel" id="roster">
+        <p class="section-title">Agent Roster</p>
+        <div id="roster-cards"></div>
+      </div>
+
+      <div class="panel" id="pipeline">
+        <p class="section-title">Task Pipeline</p>
+        <div class="kanban">
+          <div class="kcol" data-col="backlog"><h4>Backlog <em id="c-backlog">0</em></h4><div class="kbody"></div></div>
+          <div class="kcol" data-col="active"><h4>In Progress <em id="c-active">0</em></h4><div class="kbody"></div></div>
+          <div class="kcol" data-col="review"><h4>Review <em id="c-review">0</em></h4><div class="kbody"></div></div>
+          <div class="kcol" data-col="done"><h4>Shipped <em id="c-done">0</em></h4><div class="kbody"></div></div>
+        </div>
+      </div>
+
+      <div class="panel" id="terminal">
+        <div class="term-head">
+          <span class="term-dot" style="background:var(--red)"></span>
+          <span class="term-dot" style="background:var(--amber)"></span>
+          <span class="term-dot" style="background:var(--green)"></span>
+          <span style="margin-left:6px;">nexus_orchestrator.log</span>
+        </div>
+        <div id="term-body"></div>
+      </div>
+    </div>
+
+    <section class="panel" id="summary">
+      <h2>✔ Build Shipped</h2>
+      <p id="summary-sub"></p>
+      <div class="stat-row" id="stat-row"></div>
+      <p class="eyebrow">// Project Manifest</p>
+      <div class="filetree" id="filetree"></div>
+
+      <p class="eyebrow" style="margin-top:24px;">// Live Preview</p>
+      <p style="color:var(--text-dim2); font-size:14px; margin:0 0 14px; max-width:640px; line-height:1.5;">Spin up what the agents actually built — a live render of the site using the generated design system and copy — or pull every generated file to copy into your own project.</p>
+      <button class="run-btn" id="run-preview-btn">▶ Run Project</button><button class="files-btn" id="view-files-btn">🗂 View Files</button>
+
+      <div class="browser-frame" id="browser-frame">
+        <div class="browser-chrome">
+          <span class="term-dot" style="background:var(--red)"></span>
+          <span class="term-dot" style="background:var(--amber)"></span>
+          <span class="term-dot" style="background:var(--green)"></span>
+          <div class="browser-url" id="browser-url">localhost:3000</div>
+          <span class="browser-live" id="browser-live">● LIVE</span>
+        </div>
+        <div class="browser-body">
+          <div id="preview-loading" class="preview-loading">
+            <div class="spinner"></div>
+            <span id="preview-loading-text">Compiling build...</span>
+          </div>
+          <div id="preview-frame" title="Live project preview"></div>
+        </div>
+      </div>
+
+      <div class="files-panel" id="files-panel">
+        <div class="files-tabs" id="files-tabs"></div>
+        <div class="files-toolbar">
+          <span id="files-filename">—</span>
+          <button class="copy-file-btn" id="copy-file-btn">Copy File</button>
+        </div>
+        <pre class="files-content" id="files-content"></pre>
+      </div>
+
+      <button class="reset-btn" id="reset-btn">↺ Start a new build</button>
+    </section>
+
+  </section>
+</div>
+
+<script>
+/* ---------------- config ---------------- */
+const FEATURES = [
+  {id:'auth', label:'Authentication'},
+  {id:'payments', label:'Payments / E-commerce'},
+  {id:'cms', label:'Blog / CMS'},
+  {id:'dashboard', label:'Analytics Dashboard'},
+  {id:'chat', label:'Real-time Chat'},
+  {id:'search', label:'Search'},
+  {id:'darkmode', label:'Dark Mode Toggle'},
+  {id:'seo', label:'SEO Optimization'},
+  {id:'api', label:'3rd-party API Integrations'},
+  {id:'i18n', label:'Multi-language (i18n)'},
+];
+
+const AGENTS = [
+  {
+    id:'architect', name:'ARCHITECT', symbol:'◈', color:'#00fff2',
+    role:'System design',
+    baseTask:'Define architecture & tech stack',
+    system: `You are the Architect agent on an AI web-development team. Given a project brief, site type, and requested capabilities, respond with a concise technical plan:
+1) Recommended tech stack (frontend framework, backend, database, hosting) with one-line reasons.
+2) A high-level folder/file structure as a small text tree.
+3) 3-4 key architectural decisions specific to this project, one line each.
+Use markdown headers (###) and bullet points. Be specific to what was asked, not generic. Keep total response under 220 words.`
+  },
+  {
+    id:'designer', name:'DESIGNER', symbol:'✦', color:'#ff2bd6',
+    role:'UI / UX system',
+    baseTask:'Design system & visual direction',
+    system: `You are the UI/UX Designer agent on an AI web-development team. Given a project brief, site type, and requested capabilities, respond with a compact design system:
+1) A 5-color palette (name + hex) fitting the brand and tone described.
+2) Two font pairings (display + body, real font names) and why they fit.
+3) 3 concrete UI/UX principles tailored to this specific product (not generic advice).
+Use markdown headers (###) and bullets. Keep total response under 180 words.`
+  },
+  {
+    id:'frontend', name:'FRONTEND', symbol:'▲', color:'#9b5cff',
+    role:'UI engineering',
+    baseTask:'Build core UI components',
+    system: `You are the Frontend Engineer agent on an AI web-development team. Given a project brief, site type, and requested capabilities, respond with:
+1) A short bullet list of the key components/pages needed for this specific site.
+2) ONE illustrative React code snippet (inside a \`\`\`jsx code block, under 25 lines) for the single most important or complex component implied by the brief and capabilities.
+Keep prose brief — the code block is the centerpiece. Under 220 words total including code.`
+  },
+  {
+    id:'backend', name:'BACKEND', symbol:'■', color:'#ffb020',
+    role:'API & data',
+    baseTask:'Design API & data layer',
+    system: `You are the Backend Engineer agent on an AI web-development team. Given a project brief, site type, and requested capabilities, respond with:
+1) Core API endpoints as a list: METHOD /path — one-line purpose (only what this project actually needs).
+2) Primary data models with key fields, as bullets.
+3) One short note on how the requested capabilities (auth/payments/chat/etc if present) are handled server-side.
+Use markdown headers (###) and bullets/monospace for endpoints. Under 220 words.`
+  },
+  {
+    id:'content', name:'CONTENT', symbol:'▶', color:'#00ff9d',
+    role:'Copy & SEO',
+    baseTask:'Write core site copy',
+    system: `You are the Content Strategist agent on an AI web-development team. Given a project brief and site type, write ACTUAL homepage copy for this real project:
+1) A headline (under 10 words).
+2) One supporting sentence.
+3) Three short benefit/feature bullets.
+4) If SEO was requested, add 2 meta title/description options; otherwise skip this part.
+Write in a tone matching the brief. Use markdown headers (###). Under 160 words.`
+  },
+  {
+    id:'qa', name:'QA / SEC', symbol:'✚', color:'#ff3b6b',
+    role:'Testing & security',
+    baseTask:'Pre-launch QA pass',
+    system: `You are the QA & Security agent on an AI web-development team. Given a project brief, site type, and requested capabilities, output a concise pre-launch checklist: 6-8 concrete, specific test/security items relevant to THESE capabilities (not generic filler). Format as a markdown bullet checklist under a ### header. Under 140 words.`
+  },
+];
+
+let state = { tasks:[], agentStatus:{}, running:false, outputs:{}, brief:'', name:'', type:'', previewHtml:'' };
+
+/* ---------------- setup UI ---------------- */
+const fg = document.getElementById('feature-grid');
+FEATURES.forEach(f=>{
+  const id = 'feat-'+f.id;
+  const chip = document.createElement('label');
+  chip.className='feature-chip';
+  chip.innerHTML = `<span class="box"></span><input type="checkbox" id="${id}" data-id="${f.id}"><span>${f.label}</span>`;
+  fg.appendChild(chip);
+  chip.addEventListener('click', ()=>{
+    setTimeout(()=>{
+      const cb = chip.querySelector('input');
+      chip.classList.toggle('checked', cb.checked);
+    },0);
+  });
+});
+['payments','seo'].forEach(id=>{
+  const cb = document.getElementById('feat-'+id);
+  cb.checked = true;
+  cb.closest('.feature-chip').classList.add('checked');
+});
+
+function selectedFeatures(){
+  return FEATURES.filter(f=>document.getElementById('feat-'+f.id).checked).map(f=>f.label);
+}
+
+/* ---------------- network diagram ---------------- */
+const svg = document.getElementById('net-svg');
+function buildNetwork(){
+  const cx=140, cy=95;
+  let html = '';
+  // links first (under nodes)
+  AGENTS.forEach((a,i)=>{
+    const x = 430 + (i%3)*230;
+    const y = i<3 ? 40 : 150;
+    html += `<line class="link" id="link-${a.id}" x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="${a.color}"/>`;
+  });
+  // core node
+  html += `<circle cx="${cx}" cy="${cy}" r="26" fill="#070a14" stroke="var(--cyan)" stroke-width="1.5" filter="drop-shadow(0 0 6px rgba(0,255,242,.6))"/>`;
+  html += `<text x="${cx}" y="${cy+4}" text-anchor="middle" class="core-label">NEXUS</text>`;
+  // agent nodes
+  AGENTS.forEach((a,i)=>{
+    const x = 430 + (i%3)*230;
+    const y = i<3 ? 40 : 150;
+    html += `<circle class="node-ring" id="node-${a.id}" cx="${x}" cy="${y}" r="17" fill="#070a14" stroke="${a.color}" stroke-width="1.2" opacity="0.55"/>`;
+    html += `<text x="${x}" y="${y+4}" text-anchor="middle" font-family="Orbitron" font-size="10" fill="${a.color}">${a.symbol}</text>`;
+    html += `<text x="${x}" y="${y + (i<3?-26:32)}" text-anchor="middle" class="node-label">${a.name}</text>`;
+  });
+  svg.innerHTML = html;
+}
+buildNetwork();
+
+function setNetworkActive(agentId, on){
+  const link = document.getElementById('link-'+agentId);
+  const node = document.getElementById('node-'+agentId);
+  if(link) link.classList.toggle('active', on);
+  if(node) node.style.opacity = on ? '1' : '0.55';
+}
+
+/* ---------------- roster ---------------- */
+const rosterEl = document.getElementById('roster-cards');
+function buildRoster(){
+  rosterEl.innerHTML = AGENTS.map(a=>`
+    <div class="agent-card" id="agent-${a.id}" style="--ac:${a.color}">
+      <div class="agent-top">
+        <div class="agent-icon">${a.symbol}</div>
+        <div>
+          <div class="agent-name">${a.name}</div>
+          <div class="agent-role">${a.role}</div>
+        </div>
+        <div class="agent-state" id="state-${a.id}">IDLE</div>
+      </div>
+      <div class="agent-bar"><i id="bar-${a.id}"></i></div>
+      <div class="agent-task" id="task-${a.id}"></div>
+      <button class="view-output" id="btn-${a.id}">View Output ▾</button>
+      <div class="output-box" id="out-${a.id}"></div>
+    </div>
+  `).join('');
+  AGENTS.forEach(a=>{
+    document.getElementById('btn-'+a.id).addEventListener('click', ()=>{
+      const box = document.getElementById('out-'+a.id);
+      box.classList.toggle('show');
+      document.getElementById('btn-'+a.id).textContent = box.classList.contains('show') ? 'Hide Output ▴' : 'View Output ▾';
+    });
+  });
+}
+buildRoster();
+
+/* ---------------- terminal ---------------- */
+const termBody = document.getElementById('term-body');
+function log(text, cls){
+  const d = document.createElement('div');
+  const t = new Date().toLocaleTimeString('en-US',{hour12:false});
+  d.className = cls||'t-sys';
+  d.innerHTML = `<span style="color:#3d4664">[${t}]</span> ${text}`;
+  termBody.appendChild(d);
+  termBody.scrollTop = termBody.scrollHeight;
+}
+
+/* ---------------- kanban ---------------- */
+function taskCardHtml(t){
+  return `<div class="task-card" id="tc-${t.id}" style="--ac:${t.color}"><div>${t.label}</div><div class="t-agent">${t.agentName}</div></div>`;
+}
+function moveTask(taskId, col){
+  const card = document.getElementById('tc-'+taskId);
+  const target = document.querySelector(`.kcol[data-col="${col}"] .kbody`);
+  if(card && target){ target.appendChild(card); }
+  updateCounts();
+}
+function updateCounts(){
+  ['backlog','active','review','done'].forEach(c=>{
+    const n = document.querySelectorAll(`.kcol[data-col="${c}"] .task-card`).length;
+    document.getElementById('c-'+c).textContent = n;
+  });
+}
+
+/* ---------------- markdown (very small) renderer ---------------- */
+function mdToHtml(md){
+  let html = md
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // code blocks
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (m,lang,code)=>`<pre><code>${code}</code></pre>`);
+  // headers
+  html = html.replace(/^### (.*)$/gm,'<h3>$1</h3>').replace(/^## (.*)$/gm,'<h2>$1</h2>').replace(/^# (.*)$/gm,'<h1>$1</h1>');
+  // bold / inline code
+  html = html.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/`([^`]+)`/g,'<code>$1</code>');
+  // lists
+  html = html.replace(/^(?:- |\* )(.*)$/gm,'<li>$1</li>');
+  html = html.replace(/(<li>[\s\S]*?<\/li>)(?!\s*<li>)/g, m => '<ul>'+m+'</ul>').replace(/<\/ul>\s*<ul>/g,'');
+  // paragraphs (lines not already tagged)
+  html = html.split(/\n{2,}/).map(block=>{
+    if(/^\s*<(h1|h2|h3|ul|pre)/.test(block.trim())) return block;
+    if(block.trim()==='') return '';
+    return '<p>'+block.trim().replace(/\n/g,'<br>')+'</p>';
+  }).join('\n');
+  return html;
+}
+
+/* ---------------- task generation ---------------- */
+const FEATURE_TASKS = {
+  auth:      [{agent:'backend', label:'Implement authentication & sessions'}],
+  payments:  [{agent:'backend', label:'Integrate payment gateway'}, {agent:'frontend', label:'Build cart & checkout flow'}],
+  cms:       [{agent:'backend', label:'Build CMS / content API'}, {agent:'content', label:'Draft content templates'}],
+  dashboard: [{agent:'frontend', label:'Build analytics dashboard UI'}, {agent:'backend', label:'Build metrics API'}],
+  chat:      [{agent:'backend', label:'Implement real-time WebSocket service'}, {agent:'frontend', label:'Build chat UI'}],
+  search:    [{agent:'backend', label:'Implement search indexing'}, {agent:'frontend', label:'Build search UI'}],
+  darkmode:  [{agent:'frontend', label:'Implement dark/light theme system'}],
+  seo:       [{agent:'content', label:'Write SEO metadata & sitemap'}, {agent:'qa', label:'Run SEO audit'}],
+  api:       [{agent:'backend', label:'Integrate 3rd-party APIs'}],
+  i18n:      [{agent:'content', label:'Set up translations & locale routing'}],
+};
+
+function buildTasks(selectedIds){
+  const byAgent = {};
+  AGENTS.forEach(a=> byAgent[a.id] = [a.baseTask]);
+  selectedIds.forEach(fid=>{
+    (FEATURE_TASKS[fid]||[]).forEach(t=> byAgent[t.agent].push(t.label));
+  });
+  byAgent.qa.push('Accessibility & performance pass');
+  byAgent.frontend.push('Responsive layout polish');
+  const tasks = [];
+  let id=0;
+  AGENTS.forEach(a=>{
+    byAgent[a.id].forEach(label=>{
+      id++;
+      tasks.push({id:'t'+id, agent:a.id, agentName:a.name, color:a.color, label});
+    });
+  });
+  return tasks;
+}
+
+/* ---------------- API call ---------------- */
+const API_URL = "https://vibe-proxy-gqv4.onrender.com/v1/chat/completions";
+const API_HEADERS = { "Content-Type": "application/json", "Authorization": "Bearer sk-vibe-summer-2026" };
+const API_MODEL = "class-chat-model";
+
+async function callChatAPI(systemPrompt, userContent){
+  const messages = [];
+  if(systemPrompt) messages.push({ role:"system", content: systemPrompt });
+  messages.push({ role:"user", content: userContent });
+
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: API_HEADERS,
+    body: JSON.stringify({ model: API_MODEL, messages })
+  });
+  if(!response.ok){
+    let detail = '';
+    try{ detail = await response.text(); }catch(e){}
+    throw new Error(`HTTP ${response.status}${detail ? ' — '+detail.slice(0,180) : ''}`);
+  }
+  const data = await response.json();
+  if(data && data.error){ throw new Error(data.error.message || JSON.stringify(data.error)); }
+
+  const text =
+    data?.choices?.[0]?.message?.content ??
+    data?.choices?.[0]?.text ??
+    (Array.isArray(data?.content) ? data.content.map(b=>b.text||'').join('\n') : null) ??
+    data?.message?.content ??
+    null;
+
+  if(!text || !String(text).trim()) throw new Error('No content returned');
+  return String(text);
+}
+
+async function callAgent(agent, brief){
+  return callChatAPI(agent.system, brief);
+}
+
+/* ---------------- orchestration run ---------------- */
+async function runBuild(){
+  if(state.running) return;
+  state.running = true;
+
+  const name = document.getElementById('proj-name').value || 'Untitled Project';
+  const type = document.getElementById('proj-type').value;
+  const briefText = document.getElementById('proj-brief').value;
+  const features = selectedFeatures();
+  const featureIds = FEATURES.filter(f=>document.getElementById('feat-'+f.id).checked).map(f=>f.id);
+
+  const fullBrief = `Project: ${name}\nSite type: ${type}\nBrief: ${briefText}\nRequested capabilities: ${features.length? features.join(', ') : 'none specified beyond the brief'}.`;
+  state.outputs = {};
+  state.brief = fullBrief;
+  state.name = name;
+  state.type = type;
+
+  document.getElementById('setup').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  document.getElementById('status-dot').classList.add('live');
+  document.getElementById('status-text').textContent = 'ORCHESTRATION ACTIVE';
+
+  const tasks = buildTasks(featureIds);
+  ['backlog','active','review','done'].forEach(c=>{ document.querySelector(`.kcol[data-col="${c}"] .kbody`).innerHTML=''; });
+  document.querySelector('.kcol[data-col="backlog"] .kbody').innerHTML = tasks.map(taskCardHtml).join('');
+  updateCounts();
+
+  log(`Build initialized for <span class="t-tag">${name}</span> (${type})`, 't-sys');
+  log(`${tasks.length} tasks generated across ${AGENTS.length} agents`, 't-sys');
+  log(`Dispatching agents sequentially...`, 't-sys');
+
+  for(const agent of AGENTS){
+    const myTasks = tasks.filter(t=>t.agent===agent.id);
+    const card = document.getElementById('agent-'+agent.id);
+    const stateEl = document.getElementById('state-'+agent.id);
+    const bar = document.getElementById('bar-'+agent.id);
+    const taskEl = document.getElementById('task-'+agent.id);
+
+    card.classList.add('active');
+    stateEl.textContent = 'WORKING';
+    stateEl.className = 'agent-state working';
+    taskEl.textContent = myTasks.map(t=>'· '+t.label).join('\n');
+    setNetworkActive(agent.id, true);
+    myTasks.forEach(t=> moveTask(t.id,'active'));
+    log(`<span class="t-tag">[${agent.name}]</span> started — ${myTasks.length} task(s)`, 't-warn');
+
+    let p = 0;
+    const tick = setInterval(()=>{ p = Math.min(92, p + Math.random()*14); bar.style.width = p+'%'; }, 260);
+
+    try{
+      const output = await callAgent(agent, fullBrief);
+      clearInterval(tick);
+      bar.style.width = '100%';
+      state.outputs[agent.id] = output;
+      document.getElementById('out-'+agent.id).innerHTML = mdToHtml(output);
+      stateEl.textContent = 'DONE';
+      stateEl.className = 'agent-state done';
+      card.classList.remove('active'); card.classList.add('done');
+      myTasks.forEach(t=> moveTask(t.id,'review'));
+      log(`<span class="t-tag">[${agent.name}]</span> <span class="t-ok">deliverable received ✓</span>`, 't-sys');
+      await sleep(350);
+      myTasks.forEach(t=> moveTask(t.id,'done'));
+    }catch(err){
+      clearInterval(tick);
+      stateEl.textContent = 'ERROR';
+      stateEl.className = 'agent-state error';
+      log(`<span class="t-tag">[${agent.name}]</span> <span class="t-err">error: ${(err.message||'request failed')}</span>`, 't-err');
+      document.getElementById('out-'+agent.id).innerHTML = '<p style="color:var(--red)">This agent could not complete its task. You can re-run the build to retry.</p>';
+      document.getElementById('btn-'+agent.id).style.display='inline-block';
+      card.classList.add('done');
+      myTasks.forEach(t=> moveTask(t.id,'done'));
+    }
+    setNetworkActive(agent.id, false);
+  }
+
+  log(`All agents reporting. Compiling manifest...`, 't-sys');
+  await sleep(500);
+  showSummary(name, type, tasks, features);
+  document.getElementById('status-text').textContent = 'BUILD COMPLETE';
+  document.getElementById('status-dot').classList.remove('live');
+  state.running = false;
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+function showSummary(name, type, tasks, features){
+  const el = document.getElementById('summary');
+  el.style.display='block';
+  document.getElementById('summary-sub').textContent = `${name} — ${type}. ${tasks.length} tasks completed across ${AGENTS.length} agents.`;
+  document.getElementById('stat-row').innerHTML = `
+    <div class="stat"><b>${tasks.length}</b><span>Tasks Shipped</span></div>
+    <div class="stat"><b>${AGENTS.length}</b><span>Agents Deployed</span></div>
+    <div class="stat"><b>${features.length}</b><span>Capabilities</span></div>
+    <div class="stat"><b>100%</b><span>Pipeline Cleared</span></div>
+  `;
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'project';
+  document.getElementById('filetree').innerHTML =
+`<span class="d">${slug}/</span>
+├── <span class="f">README.md</span>
+├── <span class="d">src/</span>
+│   ├── <span class="d">components/</span>
+│   ├── <span class="d">pages/</span>
+│   ├── <span class="d">styles/</span>
+│   └── <span class="f">App.jsx</span>
+├── <span class="d">api/</span>
+│   ├── <span class="d">routes/</span>
+│   └── <span class="d">models/</span>
+├── <span class="d">content/</span>
+│   └── <span class="f">homepage-copy.md</span>
+├── <span class="d">qa/</span>
+│   └── <span class="f">launch-checklist.md</span>
+└── <span class="f">package.json</span>`;
+}
+
+/* ---------------- live preview ---------------- */
+const PREVIEW_SYSTEM = `You are the Build Preview agent on an AI web-development team. You are given the project brief plus the actual outputs already produced by the Architect, Designer, and Content agents. Using their real color palette, fonts (link Google Fonts if named), and actual homepage copy, produce ONE complete, self-contained, working HTML document that renders this site's homepage.
+
+Rules:
+- Return ONLY raw HTML — no explanation, no markdown, no code fences.
+- Single file: inline <style> only, no build tools, no external JS frameworks. A Google Fonts <link> is allowed if specific fonts were named.
+- Use the real palette/fonts/copy given to you, not generic placeholders.
+- Include a nav, a hero section using the actual headline/subhead, 3 feature/benefit blocks from the copy, and a footer. Make it visually match the described aesthetic.
+- Keep it compact — clean, semantic, responsive with a simple media query. No comments.`;
+
+function extractHtml(raw){
+  let s = raw.trim();
+  const fence = s.match(/```(?:html)?\n([\s\S]*?)```/i);
+  if(fence) s = fence[1].trim();
+  const startMatch = s.match(/<!DOCTYPE[\s\S]*?>|<html[\s>]/i);
+  if(startMatch){
+    const start = s.indexOf(startMatch[0]);
+    if(start > 0) s = s.slice(start);
+  }
+  const endIdx = s.toLowerCase().lastIndexOf('</html>');
+  if(endIdx !== -1) s = s.slice(0, endIdx + 7);
+  return s.trim();
+}
+
+/* Convert a full HTML document string into markup safe to drop into a
+   shadow root (strip the outer doctype/html/head/body wrapper tags but
+   keep everything inside them — style/link/content — in place). */
+function toShadowMarkup(html){
+  return html
+    .replace(/<!DOCTYPE[^>]*>/i, '')
+    .replace(/<\/?html[^>]*>/gi, '')
+    .replace(/<\/?head[^>]*>/gi, '')
+    .replace(/<\/?body[^>]*>/gi, '')
+    .replace(/<meta[^>]*>/gi, '')
+    .trim();
+}
+
+async function runPreview(){
+  const btn = document.getElementById('run-preview-btn');
+  const frameWrap = document.getElementById('browser-frame');
+  const loading = document.getElementById('preview-loading');
+  const loadingText = document.getElementById('preview-loading-text');
+  const host = document.getElementById('preview-frame');
+  const urlBar = document.getElementById('browser-url');
+
+  btn.disabled = true;
+  btn.textContent = '● Compiling...';
+  frameWrap.classList.add('show');
+  loading.style.display='flex';
+  host.style.display='none';
+
+  const msgs = ['Compiling build...','Bundling components...','Applying design tokens...','Rendering homepage...'];
+  let mi=0;
+  const cycle = setInterval(()=>{ mi=(mi+1)%msgs.length; loadingText.textContent = msgs[mi]; }, 900);
+
+  const context = `${state.brief}
+
+--- ARCHITECT OUTPUT ---
+${state.outputs.architect || 'n/a'}
+
+--- DESIGNER OUTPUT ---
+${state.outputs.designer || 'n/a'}
+
+--- CONTENT OUTPUT ---
+${state.outputs.content || 'n/a'}`;
+
+  try{
+    const raw = await callChatAPI(PREVIEW_SYSTEM, context);
+    if(!raw.trim()) throw new Error('empty response from preview agent');
+    const html = extractHtml(raw);
+    state.previewHtml = html;
+
+    clearInterval(cycle);
+    if(!host.shadowRoot) host.attachShadow({mode:'open'});
+    host.shadowRoot.innerHTML = toShadowMarkup(html);
+    loading.style.display='none';
+    host.style.display='block';
+    const slug = (state.name||'project').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+    urlBar.textContent = `localhost:3000/${slug}`;
+    log(`<span class="t-tag">[PREVIEW]</span> <span class="t-ok">live build rendered ✓</span>`, 't-sys');
+    btn.textContent = '↺ Rebuild Preview';
+    if(document.getElementById('files-panel').classList.contains('show')) buildFilesPanel();
+  }catch(err){
+    clearInterval(cycle);
+    loadingText.textContent = 'Preview failed — click Run Project to retry.';
+    log(`<span class="t-tag">[PREVIEW]</span> <span class="t-err">error: ${(err.message||'request failed')}</span>`, 't-err');
+    btn.textContent = '▶ Run Project';
+  }
+  btn.disabled = false;
+}
+
+document.getElementById('run-preview-btn').addEventListener('click', runPreview);
+
+/* ---------------- view files panel ---------------- */
+function extractCodeBlock(raw){
+  if(!raw) return null;
+  const m = raw.match(/```[a-zA-Z]*\n([\s\S]*?)```/);
+  return m ? m[1].trim() : null;
+}
+
+function buildManifest(){
+  const slug = (state.name||'project').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'project';
+  const feat = selectedFeatures();
+  const readme = `# ${state.name || 'Untitled Project'}
+
+${state.type || ''}
+
+## Brief
+${document.getElementById('proj-brief').value}
+
+## Capabilities
+${feat.length ? feat.map(f=>'- '+f).join('\n') : '- none specified'}
+
+## Generated by
+NEXUS Orchestrator — Architect, Designer, Frontend, Backend, Content, and QA agents.
+See architecture.md, design-system.md, homepage-copy.md, api-design.md, qa-checklist.md and index.html in this file set.`;
+
+  const files = [
+    { name:'README.md', content: readme },
+    { name:'index.html', content: state.previewHtml || '// Not generated yet — click "Run Project" first, then reopen this panel.' },
+    { name:'architecture.md', content: state.outputs.architect || '// Run a build first.' },
+    { name:'design-system.md', content: state.outputs.designer || '// Run a build first.' },
+  ];
+  const snippet = extractCodeBlock(state.outputs.frontend);
+  files.push({ name:'component.jsx', content: snippet || state.outputs.frontend || '// Run a build first.' });
+  files.push({ name:'api-design.md', content: state.outputs.backend || '// Run a build first.' });
+  files.push({ name:'homepage-copy.md', content: state.outputs.content || '// Run a build first.' });
+  files.push({ name:'qa-checklist.md', content: state.outputs.qa || '// Run a build first.' });
+  return files;
+}
+
+let activeFileIdx = 0;
+function buildFilesPanel(){
+  const files = buildManifest();
+  const tabs = document.getElementById('files-tabs');
+  tabs.innerHTML = files.map((f,i)=>`<button class="file-tab${i===activeFileIdx?' active':''}" data-i="${i}">${f.name}</button>`).join('');
+  tabs.querySelectorAll('.file-tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ activeFileIdx = parseInt(btn.dataset.i,10); renderFileTab(files); });
+  });
+  renderFileTab(files);
+}
+function renderFileTab(files){
+  const f = files[activeFileIdx] || files[0];
+  document.querySelectorAll('.file-tab').forEach((t,i)=> t.classList.toggle('active', i===activeFileIdx));
+  document.getElementById('files-filename').textContent = f.name;
+  document.getElementById('files-content').textContent = f.content;
+}
+document.getElementById('copy-file-btn').addEventListener('click', ()=>{
+  const text = document.getElementById('files-content').textContent;
+  const btn = document.getElementById('copy-file-btn');
+  const done = ()=>{ btn.textContent='Copied ✓'; setTimeout(()=> btn.textContent='Copy File', 1400); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));
+  } else {
+    fallbackCopy(text, done);
+  }
+});
+function fallbackCopy(text, cb){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta);
+  cb();
+}
+document.getElementById('view-files-btn').addEventListener('click', ()=>{
+  const panel = document.getElementById('files-panel');
+  panel.classList.toggle('show');
+  if(panel.classList.contains('show')){ activeFileIdx = 0; buildFilesPanel(); }
+});
+
+document.getElementById('deploy-btn').addEventListener('click', ()=>{
+  document.getElementById('deploy-btn').disabled = true;
+  runBuild().finally(()=>{ document.getElementById('deploy-btn').disabled = false; });
+});
+
+document.getElementById('reset-btn').addEventListener('click', ()=>{
+  document.getElementById('summary').style.display='none';
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('setup').style.display='block';
+  document.getElementById('status-dot').classList.remove('live');
+  document.getElementById('status-text').textContent = 'SYSTEM IDLE';
+  termBody.innerHTML='';
+  buildRoster();
+
+  state.outputs = {};
+  state.previewHtml = '';
+  state.brief = ''; state.name = ''; state.type = '';
+
+  const host = document.getElementById('preview-frame');
+  if(host.shadowRoot) host.shadowRoot.innerHTML = '';
+  document.getElementById('browser-frame').classList.remove('show');
+  host.style.display='none';
+  document.getElementById('preview-loading').style.display='flex';
+  document.getElementById('preview-loading-text').textContent = 'Compiling build...';
+  document.getElementById('browser-url').textContent = 'localhost:3000';
+  document.getElementById('run-preview-btn').textContent = '▶ Run Project';
+  document.getElementById('run-preview-btn').disabled = false;
+
+  document.getElementById('files-panel').classList.remove('show');
+  document.getElementById('files-tabs').innerHTML = '';
+  document.getElementById('files-content').textContent = '';
+  document.getElementById('files-filename').textContent = '—';
+  activeFileIdx = 0;
+});
+</script>
+</body>
+</html>
