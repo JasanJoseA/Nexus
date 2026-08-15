@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Nexus — AI Website Orchestrator</title>
+<title>Nexus — AI Orchestrator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css" />
@@ -29,65 +29,84 @@
     </div>
     <div class="status-pill" id="statusPill" data-state="idle">
       <span class="status-dot"></span>
-      <span id="statusText">IDLE</span>
+      <span id="statusText">ORCHESTRATOR ONLINE</span>
     </div>
   </header>
 
-  <main class="stage">
+  <main class="workspace">
 
-    <section class="hero" id="heroSection">
-      <p class="eyebrow">// AI ORCHESTRATION ENGINE</p>
-      <h2>Command the swarm.<br />Ship the site.</h2>
-      <p class="hero-sub">Describe the website you want. Nexus dispatches its agent chain — Orchestrator, Builder, and QA — to plan, code, and verify a real, working build in one pass.</p>
-
-      <div class="prompt-box">
-        <label for="promptInput" class="visually-hidden">Describe the website you want built</label>
-        <textarea id="promptInput" rows="4" placeholder="e.g. A landing page for a specialty coffee roastery — dark mode, a menu section, and a signup form"></textarea>
-        <div class="prompt-row">
-          <span class="prompt-hint" id="promptHint">&nbsp;</span>
-          <button id="initBtn" class="btn-primary">
-            <span class="btn-icon">&gt;_</span> INITIALIZE BUILD
-          </button>
+    <!-- ============ CHAT / ORCHESTRATOR ============ -->
+    <section class="chat-panel" aria-label="Conversation with the Nexus orchestrator">
+      <div class="panel-head">
+        <span class="panel-head-icon">◎</span>
+        <div>
+          <p class="panel-title">ORCHESTRATOR</p>
+          <p class="panel-sub">Design the site with Nexus, one message at a time</p>
         </div>
       </div>
+
+      <div class="chat-scroll" id="chatScroll"></div>
+
+      <form class="chat-input-row" id="chatForm">
+        <input
+          id="chatInput"
+          type="text"
+          placeholder="Tell Nexus what you want to build..."
+          autocomplete="off"
+        />
+        <button type="submit" id="chatSend" class="chat-send-btn">
+          <span>SEND</span>
+        </button>
+      </form>
     </section>
 
-    <section class="pipeline" id="pipelineSection" hidden>
+    <!-- ============ BUILD WORKSPACE ============ -->
+    <section class="build-panel" aria-label="Live build workspace">
+      <div class="panel-head">
+        <span class="panel-head-icon">⌁</span>
+        <div>
+          <p class="panel-title">BUILD WORKSPACE</p>
+          <p class="panel-sub">Your agents' output, live</p>
+        </div>
+      </div>
 
       <div class="agent-graph" id="agentGraph">
         <div class="agent-node" data-agent="orchestrator">
-          <div class="node-ring"></div>
-          <div class="node-core">◎</div>
+          <div class="node-ring"></div><div class="node-core">◎</div>
           <span class="node-label">ORCHESTRATOR</span>
         </div>
         <div class="connector" data-connector="0"></div>
         <div class="agent-node" data-agent="builder">
-          <div class="node-ring"></div>
-          <div class="node-core">⌁</div>
+          <div class="node-ring"></div><div class="node-core">⌁</div>
           <span class="node-label">BUILDER</span>
         </div>
         <div class="connector" data-connector="1"></div>
         <div class="agent-node" data-agent="qa">
-          <div class="node-ring"></div>
-          <div class="node-core">✓</div>
+          <div class="node-ring"></div><div class="node-core">✓</div>
           <span class="node-label">QA</span>
         </div>
         <div class="connector" data-connector="2"></div>
         <div class="agent-node" data-agent="deploy">
-          <div class="node-ring"></div>
-          <div class="node-core">▣</div>
+          <div class="node-ring"></div><div class="node-core">▣</div>
           <span class="node-label">DEPLOY</span>
         </div>
       </div>
 
-      <div class="terminal">
-        <div class="terminal-head">
-          <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
-          <p>nexus@forge-industries:~/build$</p>
+      <div class="preview-wrap">
+        <div class="preview-placeholder" id="previewPlaceholder">
+          <span class="placeholder-mark">◈</span>
+          <p>Nothing built yet.</p>
+          <p class="placeholder-sub">Tell Nexus about your site in the chat to get started.</p>
         </div>
-        <div class="terminal-body" id="terminalBody"></div>
+        <iframe id="livePreview" title="Live site preview" hidden sandbox="allow-scripts allow-forms allow-popups allow-modals"></iframe>
       </div>
 
+      <details class="agent-log" id="agentLogDetails">
+        <summary>AGENT LOG</summary>
+        <div class="terminal">
+          <div class="terminal-body" id="terminalBody"></div>
+        </div>
+      </details>
     </section>
 
   </main>
