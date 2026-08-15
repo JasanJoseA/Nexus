@@ -719,8 +719,8 @@ function buildTasks(selectedIds){
 }
 
 /* ---------------- API call ---------------- */
-const API_URL = "https://vibe-proxy-gqv4.onrender.com/v1/chat/completions";
-const API_HEADERS = { "Content-Type": "application/json", "Authorization": "Bearer sk-vibe-summer-2026" };
+const API_URL = "/api/chat/completions";
+const API_HEADERS = { "Content-Type": "application/json" };
 const API_MODEL = "class-chat-model";
 
 async function callChatAPI(systemPrompt, userContent){
