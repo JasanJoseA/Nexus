@@ -102,6 +102,7 @@ async function proxyChatCompletions(req, res) {
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
+  const isChatEndpoint = url.pathname === '/api/chat/completions';
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
@@ -113,11 +114,22 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (req.url === '/api/chat/completions' || req.url.startsWith('/api/chat/completions?')) {
+  if (isChatEndpoint) {
+    if (req.method === 'GET' || req.method === 'HEAD') {
+      sendJson(res, 200, {
+        ok: true,
+        service: 'nexus-chat-proxy',
+        method: req.method,
+        message: 'Proxy is healthy. POST requests are used for model calls.'
+      });
+      return;
+    }
+
     if (req.method !== 'POST') {
       sendJson(res, 405, { error: 'Method not allowed' });
       return;
     }
+
     await proxyChatCompletions(req, res);
     return;
   }
