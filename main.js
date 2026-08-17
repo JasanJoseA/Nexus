@@ -9,7 +9,7 @@ function initApp(){
   buildFeatureGrid();
   buildNetwork();
   buildRoster();
-  renderRecentBuilds();
+  renderHistory();
 
   document.getElementById('deploy-btn').addEventListener('click', ()=>{
     document.getElementById('deploy-btn').disabled = true;
@@ -19,9 +19,15 @@ function initApp(){
   document.getElementById('run-preview-btn').addEventListener('click', runPreview);
 
   document.getElementById('view-files-btn').addEventListener('click', ()=>{
-    const panel = document.getElementById('files-panel');
-    panel.classList.toggle('show');
-    if(panel.classList.contains('show')){ activeFileIdx = 0; buildFilesPanel(); }
+    openFilesModal(state.name || 'Current Build', buildManifest());
+  });
+
+  document.getElementById('files-modal-close').addEventListener('click', closeFilesModal);
+  document.getElementById('files-modal').addEventListener('click', (e)=>{
+    if(e.target.id === 'files-modal') closeFilesModal(); // click on backdrop
+  });
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape') closeFilesModal();
   });
 
   document.getElementById('download-zip-btn').addEventListener('click', downloadProjectZip);
@@ -42,6 +48,28 @@ function initApp(){
     const btn = e.target.closest('.retry-btn');
     if(!btn) return;
     retryAgent(btn.dataset.agent);
+  });
+
+  // event delegation for history item actions (Load Brief / View Files)
+  document.getElementById('history-list').addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-action]');
+    if(!btn) return;
+    const list = loadRecentBuilds();
+    const entry = list[parseInt(btn.dataset.i,10)];
+    if(!entry) return;
+    if(btn.dataset.action === 'load'){
+      document.getElementById('proj-name').value = entry.name;
+      document.getElementById('proj-type').value = entry.type;
+      document.getElementById('proj-brief').value = entry.brief;
+      clearFieldErrors();
+    } else if(btn.dataset.action === 'view'){
+      openFilesModal(entry.name, buildManifest(entry));
+    }
+  });
+
+  document.getElementById('clear-history-btn').addEventListener('click', ()=>{
+    clearRecentBuilds();
+    renderHistory();
   });
 
   document.getElementById('reset-btn').addEventListener('click', handleReset);
@@ -65,7 +93,7 @@ function handleReset(){
   clearLog();
   clearFieldErrors();
   buildRoster();
-  renderRecentBuilds();
+  renderHistory();
 
   resetState();
 
@@ -79,7 +107,7 @@ function handleReset(){
   document.getElementById('run-preview-btn').textContent = '▶ Run Project';
   document.getElementById('run-preview-btn').disabled = false;
 
-  document.getElementById('files-panel').classList.remove('show');
+  closeFilesModal();
   document.getElementById('files-tabs').innerHTML = '';
   document.getElementById('files-content').textContent = '';
   document.getElementById('files-filename').textContent = '—';

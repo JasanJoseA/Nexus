@@ -115,12 +115,14 @@ async function runBuild(){
   state.running = false;
 
   const saved = saveRecentBuild({
-    name, type, brief: briefText,
-    features, savedAt: new Date().toISOString()
+    name, type, brief: briefText, features,
+    outputs: state.outputs, previewHtml: state.previewHtml,
+    savedAt: new Date().toISOString()
   });
   if(saved === null){
     log(`<span class="t-warn">Recent-build history unavailable (local storage blocked in this environment) — this run won't be saved for next time.</span>`, 't-warn');
   }
+  renderHistory();
 }
 
 /* ---------------- per-agent retry ---------------- */
@@ -197,6 +199,7 @@ ${state.outputs.content || 'n/a'}`;
     if(!raw.trim()) throw new Error('empty response from preview agent');
     const html = extractHtml(raw);
     state.previewHtml = html;
+    updateLatestHistoryPreview(state.name, state.type, html);
 
     clearInterval(cycle);
     if(!host.shadowRoot) host.attachShadow({mode:'open'});
@@ -206,7 +209,9 @@ ${state.outputs.content || 'n/a'}`;
     urlBar.textContent = `localhost:3000/${slugify(state.name)}`;
     log(`<span class="t-tag">[PREVIEW]</span> <span class="t-ok">live build rendered ✓</span>`, 't-sys');
     btn.textContent = '↺ Rebuild Preview';
-    if(document.getElementById('files-panel').classList.contains('show')) buildFilesPanel();
+    if(document.getElementById('files-modal').classList.contains('show') && document.getElementById('files-modal-title').textContent === (state.name || 'Current Build')){
+      openFilesModal(state.name || 'Current Build', buildManifest());
+    }
   }catch(err){
     clearInterval(cycle);
     loadingText.textContent = 'Preview failed — click Run Project to retry.';

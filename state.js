@@ -53,6 +53,30 @@ function saveRecentBuild(entry){
   }
 }
 
+function clearRecentBuilds(){
+  try{
+    localStorage.removeItem(RECENT_BUILDS_KEY);
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+/* The live preview is generated after the build is already saved to
+   history (it's a separate manual step), so backfill it into the
+   matching entry once it exists rather than re-saving a duplicate. */
+function updateLatestHistoryPreview(name, type, html){
+  try{
+    const list = loadRecentBuilds();
+    if(list.length && list[0].name === name && list[0].type === type){
+      list[0].previewHtml = html;
+      localStorage.setItem(RECENT_BUILDS_KEY, JSON.stringify(list));
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+
 /* ---- validation ----
    Returns { valid: bool, errors: { fieldId: message } } */
 function validateProjectForm(nameValue, briefValue){

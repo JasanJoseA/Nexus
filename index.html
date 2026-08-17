@@ -30,9 +30,12 @@
     <h2>Describe the site you want built</h2>
     <p class="sub">NEXUS breaks your brief into tasks and dispatches them to six specialist agents — architecture, design, frontend, backend, content, and QA each return real, tailored deliverables for your project.</p>
 
-    <div class="recent-builds" id="recent-builds" style="display:none;">
-      <label style="display:block; font-size:var(--fs-3); letter-spacing:2px; color:var(--text-dim2); text-transform:uppercase; margin-bottom:8px; font-family:'JetBrains Mono', monospace;">Recent builds</label>
-      <div class="recent-builds-list" id="recent-builds-list"></div>
+    <div class="history-block" id="history-block" style="display:none;">
+      <div class="history-head">
+        <p class="eyebrow" style="margin:0;">// Project History</p>
+        <button type="button" class="btn btn--ghost btn--sm" id="clear-history-btn">Clear History</button>
+      </div>
+      <div class="history-list" id="history-list"></div>
     </div>
 
     <div class="row2">
@@ -71,7 +74,7 @@
   <section id="dashboard">
 
     <div id="network" class="panel">
-      <svg id="net-svg" viewBox="0 0 900 190" preserveAspectRatio="xMidYMid meet"></svg>
+      <svg id="net-svg" viewBox="0 0 1180 130" preserveAspectRatio="xMidYMid meet"></svg>
     </div>
 
     <div class="grid3">
@@ -129,27 +132,34 @@
         </div>
       </div>
 
-      <div class="files-panel" id="files-panel">
-        <div class="files-tabs" id="files-tabs"></div>
-        <div class="files-toolbar">
-          <span id="files-filename">—</span>
-          <button class="copy-file-btn" id="copy-file-btn" type="button">Copy File</button>
-        </div>
-        <pre class="files-content" id="files-content"></pre>
-      </div>
-
       <button class="btn btn--ghost" id="reset-btn" type="button">↺ Start a new build</button>
     </section>
 
   </section>
+
+  <!-- Files modal — shared by the live build's "View Files" and history's "View Files" -->
+  <div class="modal-overlay" id="files-modal">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <span id="files-modal-title">Project Files</span>
+        <button type="button" class="modal-close" id="files-modal-close">✕</button>
+      </div>
+      <div class="files-tabs" id="files-tabs"></div>
+      <div class="files-toolbar">
+        <span id="files-filename">—</span>
+        <button class="copy-file-btn" id="copy-file-btn" type="button">Copy File</button>
+      </div>
+      <pre class="files-content" id="files-content"></pre>
+    </div>
+  </div>
 </div>
 
 <!-- app scripts — order matters: data -> state -> api -> render -> orchestrator -> main -->
-<script src="data.js"></script>
-<script src="state.js"></script>
-<script src="api.js"></script>
-<script src="render.js"></script>
-<script src="orchestrator.js"></script>
-<script src="main.js"></script>
+<script src="js/data.js"></script>
+<script src="js/state.js"></script>
+<script src="js/api.js"></script>
+<script src="js/render.js"></script>
+<script src="js/orchestrator.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>
